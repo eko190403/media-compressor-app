@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "1055348892818",
+    "firebase_url": "https://creative-307ea-default-rtdb.firebaseio.com",
+    "project_id": "creative-307ea",
+    "storage_bucket": "creative-307ea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1055348892818:android:fc847fc3e6ae389040724b",
+        "android_client_info": {
+          "package_name": "com.ekosaputra.kompress_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1055348892818-82ekdh3d50lfek9tj3vm7sj41d5utg5j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxhEkA-FWM3IyeZC9ueZ0U9aPnbwAvnmo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1055348892818-82ekdh3d50lfek9tj3vm7sj41d5utg5j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

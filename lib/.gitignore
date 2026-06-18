@@ -1,0 +1,22 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+pubspec.lock
+
+# VS Code/IDE
+.idea/
+.vscode/
+
+# Environment
+.env
+
+# Android/iOS Sensitive Files
+android/app/key.properties
+ios/Runner/Generated.xcconfig
+
+# OS Files
+.DS_Store
+Thumbs.db
