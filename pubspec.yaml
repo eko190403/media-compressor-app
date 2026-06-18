@@ -52,6 +52,10 @@ flutter_icons:
   image_path: "assets/icon.png"
   adaptive_icon_background: "#EFF6FF"
   adaptive_icon_foreground: "assets/icon.png"
+  
+  flutter:
+  assets:
+    - assets/images/
 
 flutter:
   uses-material-design: true
