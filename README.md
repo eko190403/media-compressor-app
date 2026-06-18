@@ -13,7 +13,7 @@ Jujur, awalnya karena sering banget butuh kompres file tapi males kalau harus bu
 
 ### Preview
 <p align="center">
-  <img src="assets/images/compress_photo_preview.png" width="300" title="Foto Kompres">
+  <img src="assets/icon.png" width="300" title="Foto Kompres">
   <img src="assets/images/video_compress_result.png" width="300" title="Video Hasil">
 </p>
 
