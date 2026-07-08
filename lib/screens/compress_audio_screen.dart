@@ -150,9 +150,8 @@ class _CompressAudioScreenState extends State<CompressAudioScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String fileName = _audioFile != null
-        ? Uri.parse(_audioFile!.path).pathSegments.last
-        : '';
+    String fileName =
+        _audioFile != null ? Uri.parse(_audioFile!.path).pathSegments.last : '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -223,13 +222,21 @@ class _CompressAudioScreenState extends State<CompressAudioScreen> {
                     title: const Text('Normal (Kompresi Standar)'),
                     value: 1,
                     groupValue: _q,
-                    onChanged: (v) => setState(() => _q = v!),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _q = value);
+                      }
+                    },
                   ),
                   RadioListTile<int>(
                     title: const Text('Ekstrem (Ukuran Paling Kecil)'),
                     value: 2,
                     groupValue: _q,
-                    onChanged: (v) => setState(() => _q = v!),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _q = value);
+                      }
+                    },
                   ),
                 ],
               ),
@@ -265,12 +272,11 @@ class _CompressAudioScreenState extends State<CompressAudioScreen> {
                       ),
                     );
                     if (f == null) return;
-                    if (mounted) {
-                      Navigator.pop(context, {
-                        'original': _audioFile!,
-                        'compressed': f,
-                      });
-                    }
+                    if (!mounted) return;
+                    Navigator.pop(context, {
+                      'original': _audioFile!,
+                      'compressed': f,
+                    });
                   } catch (e) {
                     if (mounted) {
                       _showErrorDialog(

@@ -216,7 +216,11 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
                     title: const Text('Kompresi Standar'),
                     value: 1,
                     groupValue: _selectedQuality,
-                    onChanged: (v) => setState(() => _selectedQuality = v!),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedQuality = value);
+                      }
+                    },
                   ),
                 ],
               ),
@@ -250,12 +254,11 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
                       ),
                     );
                     if (compressedFile == null) return;
-                    if (mounted) {
-                      Navigator.pop(context, {
-                        'original': _selectedPdf!,
-                        'compressed': compressedFile,
-                      });
-                    }
+                    if (!mounted) return;
+                    Navigator.pop(context, {
+                      'original': _selectedPdf!,
+                      'compressed': compressedFile,
+                    });
                   } catch (e) {
                     if (mounted) {
                       _showErrorDialog('Error', 'Gagal memulai kompresi: $e');

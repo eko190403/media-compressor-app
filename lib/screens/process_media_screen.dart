@@ -115,15 +115,24 @@ class _ProcessMediaScreenState extends State<ProcessMediaScreen>
 
         _setStatus('Mengompres foto...');
         try {
-          int quality = widget.q == 1 ? 60 : 30;
+          // q == 1 is Normal, q == 2 is Extreme
+          int quality = widget.q == 1 ? 75 : 50;
+          int targetWidth = widget.q == 1 ? 1920 : 1280;
+          int targetHeight = widget.q == 1 ? 1920 : 1280; // Use same value to avoid weird aspect ratio constraint
+          CompressFormat format = widget.q == 1 ? CompressFormat.jpeg : CompressFormat.webp;
+          String extension = widget.q == 1 ? 'jpg' : 'webp';
+
           final dir = await getTemporaryDirectory();
           final targetPath =
-              '${dir.path}/c_${DateTime.now().millisecondsSinceEpoch}.jpg';
+              '${dir.path}/c_${DateTime.now().millisecondsSinceEpoch}.$extension';
 
           XFile? res = await FlutterImageCompress.compressAndGetFile(
             widget.file.path,
             targetPath,
             quality: quality,
+            minWidth: targetWidth,
+            minHeight: targetHeight,
+            format: format,
           );
 
           if (res == null) {
@@ -298,7 +307,7 @@ class _ProcessMediaScreenState extends State<ProcessMediaScreen>
                       child: Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: iconColor.withOpacity(0.15),
+                          color: iconColor.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(fileIcon, size: 80, color: iconColor),
@@ -308,7 +317,7 @@ class _ProcessMediaScreenState extends State<ProcessMediaScreen>
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.15),
+                        color: Colors.red.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.error_outline,
@@ -376,7 +385,7 @@ class _ProcessMediaScreenState extends State<ProcessMediaScreen>
                                   value: null,
                                   strokeWidth: 4,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                      iconColor.withOpacity(0.3)),
+                                      iconColor.withValues(alpha: 0.3)),
                                 ),
                                 Positioned(
                                   child: RotationTransition(

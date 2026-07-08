@@ -225,13 +225,21 @@ class _CompressVideoScreenState extends State<CompressVideoScreen> {
                     title: const Text('Normal (Kualitas Terjaga)'),
                     value: 1,
                     groupValue: _q,
-                    onChanged: (v) => setState(() => _q = v!),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _q = value);
+                      }
+                    },
                   ),
                   RadioListTile<int>(
                     title: const Text('Ekstrem (Ukuran Super Kecil)'),
                     value: 2,
                     groupValue: _q,
-                    onChanged: (v) => setState(() => _q = v!),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _q = value);
+                      }
+                    },
                   ),
                 ],
               ),
@@ -265,12 +273,11 @@ class _CompressVideoScreenState extends State<CompressVideoScreen> {
                       ),
                     );
                     if (f == null) return;
-                    if (mounted) {
-                      Navigator.pop(context, {
-                        'original': _vid!,
-                        'compressed': f,
-                      });
-                    }
+                    if (!mounted) return;
+                    Navigator.pop(context, {
+                      'original': _vid!,
+                      'compressed': f,
+                    });
                   } catch (e) {
                     if (mounted) {
                       _showErrorDialog('Error', 'Gagal memulai kompresi: $e');

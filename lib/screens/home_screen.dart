@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'compress_photo_screen.dart';
 import 'compress_video_screen.dart';
 import 'compress_pdf_screen.dart';
-import 'result_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final int quota;
@@ -295,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -306,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: themeColor.withOpacity(0.1),
+              color: themeColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, size: 30, color: themeColor),

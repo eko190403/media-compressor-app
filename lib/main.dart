@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'premium_page.dart';
 import 'screens/home_screen.dart';
 import 'screens/result_screen.dart';
 import 'screens/history_screen.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'dart:io';
+
+import 'services/admob_service.dart';
+import 'services/firebase_service.dart';
+import 'services/connectivity_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,52 +41,39 @@ class _AppStateContainerState extends State<AppStateContainer> {
   int _quota = 3;
   bool _isOnline = true;
   bool _isPremium = false;
-  bool _isBannerAdReady = false;
-  BannerAd? _bannerAd;
-  InterstitialAd? _interstitialAd;
-  RewardedAd? _rewardedAd;
   StreamSubscription<dynamic>? _connectivitySubscription;
 
-  Future<String> _getDeviceId() async {
-    final deviceInfo = DeviceInfoPlugin();
-    if (Platform.isAndroid) {
-      final androidInfo = await deviceInfo.androidInfo;
-      return androidInfo.id;
-    }
-    return "unknown_device";
-  }
-
-  Future<bool> _hasInternet() async {
-    final result = await Connectivity().checkConnectivity();
-    if (result is List) {
-      return result.any((r) => r != ConnectivityResult.none);
-    }
-    return result != ConnectivityResult.none;
-  }
+  final AdmobService _admobService = AdmobService();
+  final FirebaseService _firebaseService = FirebaseService();
+  final ConnectivityService _connectivityService = ConnectivityService();
 
   @override
   void initState() {
     super.initState();
     _initializeAppData();
 
-    Connectivity().checkConnectivity().then((result) {
-      _setConnectivityFrom(result);
+    _checkInternet();
+    _connectivitySubscription = _connectivityService.onConnectivityChanged.listen((_) {
+      _checkInternet();
     });
+  }
 
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      result,
-    ) {
-      _setConnectivityFrom(result);
-    });
+  Future<void> _checkInternet() async {
+    bool isOnline = await _connectivityService.hasInternet();
+    if (mounted && _isOnline != isOnline) {
+      setState(() => _isOnline = isOnline);
+    }
   }
 
   Future<void> _initializeAppData() async {
     try {
       await _syncUserStatusAndQuota();
       if (!_isPremium) {
-        _loadBannerAd();
-        _loadInterstitialAd();
-        _loadRewardedAd();
+        _admobService.loadBannerAd(() {
+          if (mounted) setState(() {});
+        });
+        _admobService.loadInterstitialAd();
+        _admobService.loadRewardedAd();
       }
     } catch (e) {
       debugPrint("Error inisialisasi: $e");
@@ -97,89 +82,20 @@ class _AppStateContainerState extends State<AppStateContainer> {
 
   Future<void> _syncUserStatusAndQuota() async {
     try {
-      String deviceId = await _getDeviceId();
-      var docRef = FirebaseFirestore.instance.collection('users').doc(deviceId);
-      String today = DateTime.now().toString().substring(0, 10);
-      var doc = await docRef.get();
-
-      int targetQuota = 3;
-      bool targetPremium = false;
-
-      if (doc.exists) {
-        targetPremium = doc.data()?['isPremium'] ?? false;
-        String lastDate = doc.data()?['lastDate'] ?? '';
-        int currentQuota = doc.data()?['quota'] ?? 3;
-
-        if (lastDate != today) {
-          targetQuota = 3;
-          await docRef.update({'quota': 3, 'lastDate': today});
-        } else {
-          targetQuota = currentQuota;
-        }
-      } else {
-        await docRef.set({'quota': 3, 'lastDate': today, 'isPremium': false});
-      }
-
-      if (mounted) {
+      final userData = await _firebaseService.syncUserStatusAndQuota();
+      if (userData != null && mounted) {
         setState(() {
-          _quota = targetQuota;
-          _isPremium = targetPremium;
+          _quota = userData.quota;
+          _isPremium = userData.isPremium;
         });
       }
     } catch (e) {
-      debugPrint('Error sync: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menyinkronkan data pengguna dengan server.')),
+        );
+      }
     }
-  }
-
-  void _loadBannerAd() {
-    if (_isPremium) return;
-    _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-      request: const AdRequest(),
-      size: AdSize.banner,
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          if (mounted && !_isPremium) {
-            setState(() => _isBannerAdReady = true);
-          }
-        },
-        onAdFailedToLoad: (ad, err) {
-          ad.dispose();
-          _bannerAd = null;
-        },
-        onAdClosed: (ad) {
-          ad.dispose();
-          _bannerAd = null;
-        },
-      ),
-    );
-    _bannerAd?.load();
-  }
-
-  void _loadInterstitialAd() {
-    if (_isPremium) return;
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/1033173712',
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) => _interstitialAd = ad,
-        onAdFailedToLoad: (err) =>
-            debugPrint('Interstitial failed: ${err.message}'),
-      ),
-    );
-  }
-
-  void _loadRewardedAd() {
-    if (_isPremium) return;
-    RewardedAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/5224354917',
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) => _rewardedAd = ad,
-        onAdFailedToLoad: (err) =>
-            debugPrint('Rewarded failed: ${err.message}'),
-      ),
-    );
   }
 
   void _showPaywallDialog() {
@@ -205,16 +121,20 @@ class _AppStateContainerState extends State<AppStateContainer> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              if (_rewardedAd != null) {
-                _rewardedAd!.show(
-                  onUserEarnedReward: (ad, reward) async {
-                    await _addQuotaFromAd();
-                    _loadRewardedAd();
-                  },
-                );
-              } else {
-                _loadRewardedAd();
-              }
+              _admobService.showRewardedAd(() async {
+                try {
+                  int newQuota = await _firebaseService.addQuotaFromAd();
+                  if (mounted) {
+                    setState(() => _quota = newQuota);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Gagal menambahkan kuota. Cek koneksi Anda.')),
+                    );
+                  }
+                }
+              });
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text(
@@ -227,70 +147,40 @@ class _AppStateContainerState extends State<AppStateContainer> {
     );
   }
 
-  Future<void> _addQuotaFromAd() async {
-    String deviceId = await _getDeviceId();
-    setState(() => _quota += 1);
-    await FirebaseFirestore.instance.collection('users').doc(deviceId).update({
-      'quota': _quota,
-    });
-  }
-
-  Future<void> _updateQuota() async {
-    if (_isPremium) return;
-    String deviceId = await _getDeviceId();
-    if (await _hasInternet()) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(deviceId)
-            .update({'quota': FieldValue.increment(-1)});
-        await _syncUserStatusAndQuota();
-      } catch (e) {
-        debugPrint("Quota update error: $e");
-      }
-    } else {
-      setState(() => _quota--);
-    }
-  }
-
-  void _setConnectivityFrom(dynamic result) {
-    bool online = false;
-    if (result is ConnectivityResult) {
-      online = result != ConnectivityResult.none;
-    } else if (result is List) {
-      try {
-        online = result.any((r) => r != ConnectivityResult.none);
-      } catch (e) {
-        online = result.isNotEmpty;
-      }
-    }
-    if (mounted) setState(() => _isOnline = online);
+  void _showNoInternetDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Butuh Internet"),
+        content: const Text("Fitur ini memerlukan koneksi internet untuk mengelola kuota."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleCompressionSuccess(
     String title,
     Map<String, dynamic> result,
   ) async {
-    String deviceId = await _getDeviceId();
-    var doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(deviceId)
-        .get();
-    bool isPremiumUser = doc.data()?['isPremium'] ?? false;
-    int currentQuotaUser = doc.data()?['quota'] ?? 0;
+    // Check latest status first before proceeding
+    try {
+      await _syncUserStatusAndQuota();
+    } catch (e) {
+      // Ignore if offline, fallback to local state
+    }
 
-    setState(() {
-      _isPremium = isPremiumUser;
-      _quota = currentQuotaUser;
-    });
-
-    if (!isPremiumUser) {
-      bool online = await _hasInternet();
+    if (!_isPremium) {
+      bool online = await _connectivityService.hasInternet();
       if (!online) {
         _showNoInternetDialog();
         return;
       }
-      if (currentQuotaUser <= 0) {
+      if (_quota <= 0) {
         _showPaywallDialog();
         return;
       }
@@ -310,49 +200,38 @@ class _AppStateContainerState extends State<AppStateContainer> {
       ),
     ).then((_) => _syncUserStatusAndQuota());
 
-    if (!isPremiumUser) {
-      await _updateQuota();
-      if (_interstitialAd != null) {
-        _interstitialAd!.show();
-        _loadInterstitialAd();
+    if (!_isPremium) {
+      try {
+        int newQuota = await _firebaseService.consumeQuota(_quota, _isOnline);
+        if (mounted) {
+          setState(() => _quota = newQuota);
+        }
+      } catch (e) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Terjadi kesalahan saat memotong kuota.'))
+           );
+        }
       }
+      _admobService.showInterstitialAd();
     }
-  }
-
-  void _showNoInternetDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Butuh Internet"),
-        content: const Text("Fitur ini memerlukan koneksi internet."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   void dispose() {
-    _bannerAd?.dispose();
-    _interstitialAd?.dispose();
-    _rewardedAd?.dispose();
+    _admobService.dispose();
     _connectivitySubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // MENYAMBUNGKAN STATE UTAMA KE FILE HOME_SCREEN.DART YANG BARU
     return HomeScreen(
       quota: _quota,
       isPremium: _isPremium,
       isOnline: _isOnline,
-      bannerAd: _bannerAd,
-      isBannerAdReady: _isBannerAdReady,
+      bannerAd: _admobService.bannerAd,
+      isBannerAdReady: _admobService.isBannerAdReady,
       onTriggerPrivacyPolicy: () {
         showDialog(
           context: context,
@@ -372,8 +251,9 @@ class _AppStateContainerState extends State<AppStateContainer> {
                   final Uri uri = Uri.parse(
                     'https://docs.google.com/document/d/1example/edit?usp=sharing',
                   );
-                  if (await canLaunchUrl(uri))
+                  if (await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
                 },
                 child: const Text("Baca Lengkap"),
               ),
@@ -387,19 +267,13 @@ class _AppStateContainerState extends State<AppStateContainer> {
           MaterialPageRoute(builder: (_) => const HistoryScreen()),
         );
       },
-
-      // KOREKSI DI SINI: Menggunakan fungsi async-await murni untuk mendeteksi halaman ditutup
       onTriggerPremiumPage: () async {
-        // 1. Aplikasi akan menunggu (pause) di baris ini sampai PremiumPage ditutup oleh user
         await Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const PremiumPage()),
         );
-
-        // 2. Begitu user kembali ke HomeScreen, baris di bawah ini langsung dieksekusi secara paksa
         await _syncUserStatusAndQuota();
       },
-
       onCompressionSuccess: (type, res) => _handleCompressionSuccess(type, res),
     );
   }
