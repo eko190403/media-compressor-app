@@ -13,8 +13,10 @@ Jujur, awalnya karena sering banget butuh kompres file tapi males kalau harus bu
 
 ### Preview
 <p align="center">
-  <img src="assets/icon.png" width="300" title="Foto Kompres">
-  <img src="assets/images/video_compress_result.png" width="300" title="Video Hasil">
+  <img src="assets/screenshots/home.png" width="200" title="Beranda Aplikasi">
+  <img src="assets/screenshots/compressing.png" width="200" title="Proses Kompresi">
+  <img src="assets/screenshots/result.png" width="200" title="Hasil Kompresi">
+  <img src="assets/screenshots/exit_dialog.png" width="200" title="Peringatan Keluar">
 </p>
 
 ### Teknologi di Balik Layar
